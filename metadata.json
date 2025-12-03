@@ -1,0 +1,7 @@
+{
+  "name": "DanishPro Репетитор",
+  "description": "Профессиональный репетитор датского языка с поддержкой русского и живым диалогом.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
