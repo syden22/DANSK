@@ -4,23 +4,38 @@ import LiveSession from './components/LiveSession';
 import { Key, Loader2, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [hasKey, setHasKey] = useState<boolean>(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
     async function checkKey() {
-      // 1. Check if process.env.API_KEY is already available (e.g. injected or local)
-      if (process.env.API_KEY) {
-        setHasKey(true);
+      // 1. Check for Vite Environment Variable (Standard for Vercel/Vite deployments)
+      // We use 'as any' to bypass TS checks if import.meta isn't fully typed in the setup
+      const viteKey = (import.meta as any).env?.VITE_API_KEY;
+      if (viteKey) {
+        setApiKey(viteKey);
         setIsChecking(false);
         return;
       }
 
-      // 2. Check if we are in AI Studio environment and need to select a key
+      // 2. Check for process.env (Legacy/AI Studio injection)
+      if (process.env.API_KEY) {
+        setApiKey(process.env.API_KEY);
+        setIsChecking(false);
+        return;
+      }
+
+      // 3. Check AI Studio interactive selection (Development mode)
       if (window.aistudio) {
         try {
-          const selected = await window.aistudio.hasSelectedApiKey();
-          setHasKey(selected);
+          const hasSelected = await window.aistudio.hasSelectedApiKey();
+          if (hasSelected) {
+             // In AI Studio, the key is injected globally, we just signal we are ready
+             // We'll pass a placeholder or let LiveSession assume process.env is now populated
+             // ideally we'd get the key value, but for security AI Studio keeps it hidden in env.
+             // We will assume process.env.API_KEY works after selection.
+             setApiKey(process.env.API_KEY || "INJECTED_BY_AISTUDIO");
+          }
         } catch (e) {
           console.error("Error checking AI Studio key state:", e);
         }
@@ -36,18 +51,16 @@ const App: React.FC = () => {
     if (window.aistudio) {
       try {
         await window.aistudio.openSelectKey();
-        // Assume success if no error thrown, prompt suggests relying on this flow
-        // We force a re-render or state update to proceed. 
-        // In AI Studio, the environment might reload or we can just proceed.
         const selected = await window.aistudio.hasSelectedApiKey();
         if (selected) {
-           setHasKey(true);
+           // Force a reload or update state to grab the injected key
+           setApiKey(process.env.API_KEY || "INJECTED_BY_AISTUDIO");
         }
       } catch (e) {
         console.error("Key selection failed or cancelled", e);
       }
     } else {
-        alert("Функция выбора ключа недоступна в этом браузере.");
+        alert("В этой версии приложения ключ нужно указать в файле .env или настройках Vercel как VITE_API_KEY");
     }
   };
 
@@ -59,7 +72,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (!hasKey) {
+  if (!apiKey) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 to-black flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 border border-slate-700 shadow-2xl text-center">
@@ -69,30 +82,34 @@ const App: React.FC = () => {
           
           <h1 className="text-2xl font-bold text-white mb-3">Требуется доступ</h1>
           <p className="text-slate-400 mb-8">
-            Для работы репетитора необходимо подключить ваш Google Gemini API ключ.
+            Для работы репетитора необходим API ключ.
           </p>
 
-          <button 
-            onClick={handleSelectKey}
-            className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2 group"
-          >
-            <ShieldCheck className="w-5 h-5 group-hover:text-green-600 transition-colors" />
-            Выбрать API Ключ
-          </button>
-          
-          <div className="mt-6 text-xs text-slate-500">
-             Используйте ключ от проекта с подключенным биллингом для доступа к Live API.
-          </div>
+          {window.aistudio ? (
+            <button 
+              onClick={handleSelectKey}
+              className="w-full py-4 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2 group"
+            >
+              <ShieldCheck className="w-5 h-5 group-hover:text-green-600 transition-colors" />
+              Подключить Google Аккаунт
+            </button>
+          ) : (
+            <div className="p-4 bg-slate-900 rounded-xl border border-slate-600 text-left text-sm text-slate-300">
+               <p className="font-bold text-white mb-2">Как запустить:</p>
+               <ol className="list-decimal list-inside space-y-2">
+                 <li>Создайте файл <code>.env</code></li>
+                 <li>Добавьте: <code>VITE_API_KEY=ваш_ключ</code></li>
+                 <li>Или добавьте эту переменную в настройках Vercel</li>
+               </ol>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // Pass the key. Even if process.env.API_KEY was undefined initially, 
-  // in AI Studio it is injected after selection.
-  // We use the non-null assertion because we guarded with `hasKey` check which implies environment is ready.
   return (
-    <LiveSession apiKey={process.env.API_KEY!} />
+    <LiveSession apiKey={apiKey} />
   );
 };
 
