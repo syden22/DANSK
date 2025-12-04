@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, Phone, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2, Phone } from 'lucide-react';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
@@ -151,7 +151,6 @@ const LiveSession: React.FC = () => {
       // 3. API Connection
       setConnectionStep('Соединение с ИИ сервером...');
       
-      // Use process.env.API_KEY directly as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
       const sessionPromise = ai.live.connect({
@@ -290,7 +289,7 @@ const LiveSession: React.FC = () => {
             console.error("Session Error", e);
             if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
             // More specific error messaging based on typical API failure patterns
-            const errorMsg = "Ошибка доступа. Возможно, неверный ключ или закончились лимиты.";
+            const errorMsg = "Ошибка доступа. Проверьте ваш API ключ и лимиты.";
             handleHangUp('error', errorMsg);
           }
         }
@@ -556,6 +555,7 @@ const LiveSession: React.FC = () => {
               </h2>
               
               <div className="space-y-6">
+
                 <div>
                   <label className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-3 block">Репетитор</label>
                   <div className="grid grid-cols-2 gap-3">
