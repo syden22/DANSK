@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, Phone, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
 
 type EndReason = 'user' | 'error' | 'remote';
 
-const LiveSession: React.FC = () => {
+interface LiveSessionProps {
+  apiKey: string;
+  onLogout: () => void;
+}
+
+const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
   // Application State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [connectionStep, setConnectionStep] = useState<string>(''); // Detailed status text
@@ -151,8 +156,8 @@ const LiveSession: React.FC = () => {
       // 3. API Connection
       setConnectionStep('Соединение с ИИ сервером...');
       
-      // Use process.env.API_KEY
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Use passed apiKey prop
+      const ai = new GoogleGenAI({ apiKey: apiKey });
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -408,6 +413,13 @@ const LiveSession: React.FC = () => {
            </span>
         </div>
         <div className="flex gap-3">
+           <button 
+             onClick={onLogout}
+             title="Выйти / Сменить ключ"
+             className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-red-600 transition-colors"
+           >
+             <LogOut className="w-5 h-5" />
+           </button>
            <button 
              onClick={() => setShowHelp(true)}
              className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors"
