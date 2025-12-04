@@ -1,18 +1,13 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, Phone, PhoneOff, Settings, MessageSquare, X, Volume2, LogOut, Loader2, HelpCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
 
-interface LiveSessionProps {
-  // apiKey removed as it is now accessed via process.env.API_KEY
-}
-
 type EndReason = 'user' | 'error' | 'remote';
 
-const LiveSession: React.FC<LiveSessionProps> = () => {
+const LiveSession: React.FC = () => {
   // Application State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [connectionStep, setConnectionStep] = useState<string>(''); // Detailed status text
@@ -155,7 +150,8 @@ const LiveSession: React.FC<LiveSessionProps> = () => {
 
       // 3. API Connection
       setConnectionStep('Соединение с ИИ сервером...');
-      // Initialize with process.env.API_KEY as per guidelines
+      
+      // Use process.env.API_KEY
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
       const sessionPromise = ai.live.connect({
@@ -294,7 +290,7 @@ const LiveSession: React.FC<LiveSessionProps> = () => {
             console.error("Session Error", e);
             if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
             // More specific error messaging based on typical API failure patterns
-            const errorMsg = "Ошибка доступа. Проверьте ваш API ключ и лимиты.";
+            const errorMsg = "Ошибка доступа. Возможно, неверный ключ или закончились лимиты.";
             handleHangUp('error', errorMsg);
           }
         }
@@ -561,8 +557,6 @@ const LiveSession: React.FC<LiveSessionProps> = () => {
               
               <div className="space-y-6">
                 <div>
-                   {/* API Key management removed as it is now handled externally */}
-
                   <label className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-3 block">Репетитор</label>
                   <div className="grid grid-cols-2 gap-3">
                     {VOICES.map(voice => (
