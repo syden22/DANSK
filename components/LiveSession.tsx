@@ -7,12 +7,12 @@ import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
 
 interface LiveSessionProps {
-  apiKey: string;
+  // apiKey removed as it is now accessed via process.env.API_KEY
 }
 
 type EndReason = 'user' | 'error' | 'remote';
 
-const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
+const LiveSession: React.FC<LiveSessionProps> = () => {
   // Application State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [connectionStep, setConnectionStep] = useState<string>(''); // Detailed status text
@@ -155,7 +155,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
 
       // 3. API Connection
       setConnectionStep('Соединение с ИИ сервером...');
-      const ai = new GoogleGenAI({ apiKey });
+      // Initialize with process.env.API_KEY as per guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -168,23 +169,22 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
           inputAudioTranscription: {}, 
           outputAudioTranscription: {},
           systemInstruction: `
-            You are ${config.voiceName === 'Kore' ? 'Mette' : 'Mads'}, an expert Danish language tutor for a Russian speaker.
+            You are ${config.voiceName === 'Kore' ? 'Mette' : 'Mads'}, a friendly Danish tutor.
 
-            CRITICAL INSTRUCTIONS:
-            1. **LANGUAGE MIRRORING**: 
-               - If the user speaks **RUSSIAN**: You MUST reply in **RUSSIAN**. Explain concepts, translate words, or answer their questions in Russian.
-               - If the user speaks **DANISH**: Reply in **DANISH** to practice, but correct their mistakes.
+            RULES:
+            1. **EMERGENCY STOP**: If user says "Стоп" (Stop), "Не понимаю" (I don't understand), "Переведи" (Translate) -> **IMMEDIATELY** switch to Russian and explain.
+            
+            2. **SENTENCE LIMIT**: Speak **MAXIMUM 1 SENTENCE** at a time. Do not make speeches. Wait for the user to respond.
+            
+            3. **LANGUAGE**: 
+               - Default: Speak simple Danish.
+               - If user struggles: Speak Russian.
+               - Always match the user's language if they switch to Russian.
 
-            2. **CONFUSION PROTOCOL**:
-               - If the user says "Не понимаю" (I don't understand), "Что?" (What?), "Переведи" (Translate), or "По-русски" (In Russian) -> YOU MUST SWITCH TO RUSSIAN IMMEDIATELY.
-               - Translate what you just said or explain the grammar in Russian.
-
-            3. **TEACHING STYLE**:
-               - Keep responses SHORT (1-3 sentences maximum). Do not lecture.
-               - Be encouraging but strict about pronunciation.
-               - Speak clearly.
-
-            Start by introducing yourself in DANISH, but immediately translate it to RUSSIAN so the user understands.
+            4. **ROLE**: 
+               - You are a helpful human tutor on a phone call. 
+               - Correct mistakes gently. 
+               - Keep the conversation flowing naturally.
           `,
         },
         callbacks: {
@@ -399,7 +399,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
         <img 
           src={currentVoice.avatarUrl} 
           alt="Tutor Avatar"
-          className={`w-full h-full object-cover transition-transform duration-[2000ms] ease-in-out ${isModelSpeaking ? 'scale-105' : 'scale-100'}`}
+          className={`w-full h-full object-cover object-top transition-transform duration-[2000ms] ease-in-out ${isModelSpeaking ? 'scale-105' : 'scale-100'}`}
         />
       </div>
 
@@ -469,7 +469,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
                           </div>
                           <div>
                               <h3 className="text-white font-semibold mb-1">Русский и Датский</h3>
-                              <p className="text-slate-400 text-sm">Учитель знает русский. Если сложно - спросите перевод.</p>
+                              <p className="text-slate-400 text-sm">Учитель знает русский. Если сложно - скажите "СТОП" или "НЕ ПОНИМАЮ".</p>
                           </div>
                       </div>
                   </div>
@@ -561,6 +561,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
               
               <div className="space-y-6">
                 <div>
+                   {/* API Key management removed as it is now handled externally */}
+
                   <label className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-3 block">Репетитор</label>
                   <div className="grid grid-cols-2 gap-3">
                     {VOICES.map(voice => (
