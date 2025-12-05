@@ -14,20 +14,30 @@
         color: #e2e8f0;
         margin: 0;
       }
+      /* Custom Animations */
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+      
+      @keyframes slide-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+      
+      .safe-area-top { padding-top: env(safe-area-inset-top, 20px); }
     </style>
     <script>
-      // GLOBAL ERROR TRAP - Если скрипт упадет, покажем ошибку
-      window.onerror = function(message, source, lineno, colno, error) {
-        // Игнорируем ошибки расширений браузера
-        if (source && source.includes('chrome-extension')) return;
-        
-        document.body.innerHTML = `
-          <div style="background: #000; color: #f87171; padding: 20px; font-family: monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-            <h1 style="font-size: 20px; margin-bottom: 20px; color: white;">Критический сбой</h1>
-            <p style="background: #111; padding: 15px; border-radius: 8px; max-width: 600px; border: 1px solid #333;">${message}</p>
-            <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: white; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Перезагрузить</button>
-          </div>
-        `;
+      // Global Error Trap
+      window.onerror = function(message) {
+        if (document.body) {
+           const errDiv = document.createElement('div');
+           errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;text-align:center;font-size:12px;';
+           errDiv.innerText = 'System: ' + message;
+           document.body.appendChild(errDiv);
+        }
       };
     </script>
   <script type="importmap">
