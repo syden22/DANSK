@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, PhoneOff, Settings, MessageSquare, X, Phone, LogOut, Globe } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Settings, MessageSquare, X, Phone, LogOut, Globe, BookOpen } from 'lucide-react';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
@@ -70,10 +70,22 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
     setConnectionState('connecting');
     setErrorMsg(null);
 
+    // Basic Validation
+    if (!apiKey || apiKey.length < 10) {
+      setErrorMsg("Некорректный API ключ.");
+      setConnectionState('error');
+      return;
+    }
+
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioContextClass({ sampleRate: 24000 });
-      await ctx.resume();
+      
+      // Resume context immediately (browser policy)
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      
       audioContextRef.current = ctx;
       nextPlayTime.current = ctx.currentTime;
 
@@ -86,37 +98,44 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
       const currentVoiceProfile = VOICES.find(v => v.name === config.voiceName);
       const tutorName = currentVoiceProfile?.description.split(' ')[0] || 'Mette';
 
-      // *** PROFESSIONAL PEDAGOGICAL INSTRUCTION ***
+      // *** PROFESSIONAL PEDAGOGICAL INSTRUCTION (Danskuddannelse) ***
       const systemInstruction = `
-        Role: You are ${tutorName}, an elite, native Danish language tutor teaching a Russian-speaking student.
+        System Instruction:
+        You are ${tutorName}, a professional, certified teacher at a Danish Language Center (Sprogcenter). You are teaching a Russian-speaking student.
+
+        CRITICAL LANGUAGE RULE:
+        - **EXPLANATIONS:** MUST BE IN RUSSIAN. All grammar rules, corrections, and instructions must be explained in Russian clearly.
+        - **PRACTICE:** Speak Danish ONLY when giving examples or conducting a specific drill.
+        - If the user speaks Russian, answer in Russian instantly. Never pretend not to understand Russian.
+
+        YOUR CURRICULUM (Danskuddannelse):
+        You must structure the lesson based on these modules. At the start, ask the user their level or start from Module 1.
         
-        GOAL: To conduct a natural, engaging conversation that improves the user's Danish skills, using Russian only as a precise tool for explanation.
+        - **Module 1 (Beginner):** 
+          * Topics: Presentation (Name, Country), Numbers, Alphabet, Yes/No questions.
+          * Grammar: Word order (Inversion), Present tense (Nutid), Personal pronouns.
+        
+        - **Module 2 (Basic):**
+          * Topics: Family, Daily rhythm, Clock, Shopping/Prices, Transport.
+          * Grammar: Nouns (en/et), Plural, Adjectives.
+        
+        - **Module 3 (Intermediate):**
+          * Topics: Work, Education, Health, Housing, Past tense.
+          * Grammar: Past tense (Datid), Prepositions, Modal verbs.
 
-        BEHAVIORAL GUIDELINES:
-        1. **The "Sandwich" Method (CRITICAL):** 
-           - If the user struggles or asks for help, DO NOT just switch to Russian permanently.
-           - Structure: [Short Russian Explanation] -> [Danish Phrase to Practice].
-           - Example User: "I don't understand 'hygge'."
-           - Example You: "Это уют, который создается атмосферой. Скажи: 'Det er meget hyggeligt'."
+        TEACHING METHODOLOGY (Active Teacher):
+        1. **Assessment:** Start by asking (in Russian): "Привет! Я твой учитель датского. Какой у тебя уровень? Мы начнем с Модуля 1 (Приветствие) или ты уже что-то знаешь?"
+        2. **Drill Mode:**
+           - Explain a rule in Russian (e.g., "В датском глагол всегда на втором месте").
+           - Give an example in Danish (e.g., "Jeg hedder Peter").
+           - Ask the user to translate a phrase or create a sentence.
+        3. **Correction:**
+           - If the user makes a mistake, STOP them immediately.
+           - Explain WHY it is wrong in Russian.
+           - Make them repeat the correct Danish phrase 2 times.
+        4. **Pacing:** Do not rush. Wait for the user to answer. If they are silent, ask in Russian: "Тебе помочь с переводом?"
 
-        2. **Proactive Conversation:**
-           - Do not wait for the user to lead.
-           - actively ask questions about their life, work, opinions, or the environment.
-           - If the conversation stalls, propose a new simple topic (e.g., food, travel, daily routine).
-
-        3. **Correction Strategy:**
-           - If the user makes a small mistake, repeat their sentence back to them CORRECTLY in your reply without lecturing.
-           - If the user makes a big mistake, briefly explain the grammar in Russian, then ask them to try again in Danish.
-
-        4. **Language Balance:**
-           - Default state: Speak clear, slightly slow Danish.
-           - If user speaks Russian: Answer their question in Russian, BUT immediately ask a follow-up question in Danish to switch the mode back.
-
-        5. **Personality:**
-           - Friendly, patient, encouraging. You are a real person, not a robot. Use fillers like "Nå...", "Ja...", "Spændende".
-
-        RESTRICTIONS:
-        - Keep responses CONCISE (maximum 2-3 sentences). This is a dialogue, not a monologue.
+        Your personality is professional, structured, demanding but patient. You are NOT a chat-bot friend. You are a Teacher.
       `;
 
       const sessionPromise = ai.live.connect({
@@ -191,9 +210,21 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
             }
           },
           onclose: () => setConnectionState('disconnected'),
-          onerror: (err) => {
-            console.error(err);
-            setErrorMsg("Ошибка подключения. Проверьте лимиты ключа или интернет.");
+          onerror: (err: any) => {
+            console.error("Gemini Live Error:", err);
+            // Translate generic network errors to actionable advice
+            let msg = "Ошибка подключения.";
+            const errMsg = err.message || '';
+            
+            if (errMsg.includes('Network error') || errMsg.includes('fetch')) {
+               msg = "Ошибка сети! Если вы в РФ/РБ - включите VPN. Также проверьте баланс ключа.";
+            } else if (errMsg.includes('403') || errMsg.includes('permission')) {
+               msg = "Ошибка доступа (403). Включите Billing в Google Console.";
+            } else {
+               msg = `Ошибка: ${errMsg}`;
+            }
+
+            setErrorMsg(msg);
             setConnectionState('error');
             cleanup();
           }
@@ -201,7 +232,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
       });
 
     } catch (e: any) {
-      setErrorMsg("Не удалось запустить аудио. Разрешите доступ к микрофону.");
+      console.error("Start Call Error:", e);
+      setErrorMsg(`Не удалось запустить аудио: ${e.message}`);
       setConnectionState('error');
       cleanup();
     }
@@ -237,7 +269,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
          
          <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 border ${connectionState === 'connected' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-slate-500/20 border-slate-500/30 text-slate-400'}`}>
             <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
-            {connectionState === 'connected' ? 'LIVE' : connectionState === 'connecting' ? 'CONNECTING' : 'READY'}
+            {connectionState === 'connected' ? 'LIVE LESSON' : connectionState === 'connecting' ? 'CONNECTING...' : 'SPROGCENTER'}
          </div>
 
          <button onClick={() => setShowSettings(!showSettings)} className="p-3 bg-black/40 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/5">
@@ -262,6 +294,10 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
             <div>
               <h2 className="text-5xl font-bold mb-2 tracking-tight text-white drop-shadow-lg">{currentVoice.description.split(' ')[0]}</h2>
               <p className="text-slate-300 text-lg font-medium tracking-wide opacity-80">{currentVoice.description.split('(')[1].replace(')', '')}</p>
+              <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-1 rounded-full border border-white/10">
+                <BookOpen size={14} className="text-yellow-400"/>
+                <span className="text-xs uppercase tracking-wider text-slate-200">Danskuddannelse 3</span>
+              </div>
             </div>
             
             <button 
@@ -289,7 +325,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
                    </p>
                  </div>
                ) : (
-                 <p className="text-slate-400/50 text-sm font-medium uppercase tracking-widest animate-pulse">Слушаю вас...</p>
+                 <p className="text-slate-400/50 text-sm font-medium uppercase tracking-widest animate-pulse">Слушаю ответ...</p>
                )}
             </div>
           </div>
@@ -337,7 +373,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
               <div className="space-y-8">
                 {/* Выбор Репетитора */}
                 <div>
-                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-3 block">Выберите репетитора</label>
+                   <label className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-3 block">Выберите преподавателя</label>
                    <div className="grid grid-cols-2 gap-3">
                       {VOICES.map(v => (
                         <button 
@@ -389,7 +425,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
              {transcripts.length === 0 && (
                <div className="text-center mt-20 opacity-50">
                  <MessageSquare size={48} className="mx-auto mb-4 text-slate-600"/>
-                 <p>Здесь будет текст диалога</p>
+                 <p>Здесь будет текст урока</p>
                </div>
              )}
              {transcripts.map(t => (
