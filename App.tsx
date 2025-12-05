@@ -1,62 +1,129 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import LiveSession from './components/LiveSession';
-import { ServerCrash, Lock } from 'lucide-react';
+import { Key, ShieldCheck, Server, LogIn } from 'lucide-react';
 
 const App: React.FC = () => {
-  let serverKey = '';
-  
-  // Safely attempt to read VITE_API_KEY
-  try {
-    // @ts-ignore
-    serverKey = import.meta.env?.VITE_API_KEY || '';
-  } catch (e) {
-    console.warn("Env var access failed", e);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [inputKey, setInputKey] = useState('');
+  const [authSource, setAuthSource] = useState<'server' | 'local' | null>(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = () => {
+    // 1. Try Server Env (Vercel)
+    let serverKey = '';
+    try {
+      const env = (import.meta as any).env;
+      if (env && env.VITE_API_KEY) {
+        serverKey = env.VITE_API_KEY;
+      }
+    } catch (e) {
+      console.warn("Env read error", e);
+    }
+
+    if (isValidKey(serverKey)) {
+      setApiKey(serverKey);
+      setAuthSource('server');
+      return;
+    }
+
+    // 2. Try Local Storage (Browser Memory for Testing)
+    const localKey = localStorage.getItem('gemini_api_key');
+    if (isValidKey(localKey)) {
+      setApiKey(localKey!);
+      setAuthSource('local');
+    }
+  };
+
+  const isValidKey = (key: string | null | undefined) => {
+    return key && typeof key === 'string' && key.trim().startsWith('AIza');
+  };
+
+  const handleManualLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isValidKey(inputKey)) {
+      localStorage.setItem('gemini_api_key', inputKey.trim());
+      setApiKey(inputKey.trim());
+      setAuthSource('local');
+    } else {
+      alert('Ключ должен начинаться с "AIza"');
+    }
+  };
+
+  const handleLogout = () => {
+    if (authSource === 'local') {
+      localStorage.removeItem('gemini_api_key');
+    }
+    setApiKey('');
+    setAuthSource(null);
+    setInputKey('');
+  };
+
+  // --- RENDER APP ---
+  if (apiKey) {
+    return (
+      <LiveSession 
+        apiKey={apiKey} 
+        onLogout={authSource === 'local' ? handleLogout : undefined} 
+      />
+    );
   }
 
-  // Strict Validation: Key must exist and start with 'AIza'
-  const isKeyValid = serverKey && typeof serverKey === 'string' && serverKey.startsWith('AIza');
-
-  // Scenario A: Everything is configured correctly on Vercel
-  if (isKeyValid) {
-    return <LiveSession apiKey={serverKey} />;
-  }
-
-  // Scenario B: Key is missing on Vercel.
-  // Display a clear, informative screen instead of crashing.
+  // --- RENDER LOGIN SCREEN (Test Mode) ---
   return (
-    <div className="h-screen w-full bg-black flex flex-col items-center justify-center p-6 font-sans text-slate-400">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-2xl flex flex-col items-center text-center shadow-2xl">
-        <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-           <ServerCrash className="w-8 h-8 text-red-500" />
+    <div className="min-h-screen w-full bg-black flex flex-col items-center justify-center p-6 font-sans text-slate-200">
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800/20 via-black to-black z-0" />
+
+      <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-xl border border-slate-700 p-8 rounded-3xl flex flex-col items-center text-center shadow-2xl relative z-10 animate-fade-in-up">
+        
+        <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-slate-700">
+           <LogIn className="w-8 h-8 text-white" />
         </div>
         
-        <h1 className="text-xl font-bold text-white mb-2">Настройка сервера не завершена</h1>
+        <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">DanishPro</h1>
+        <p className="text-slate-400 text-sm mb-8">Режим тестирования и настройки</p>
         
-        <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-          Приложение запущено, но не может найти API ключ Google Gemini в настройках Vercel.
-        </p>
+        <form onSubmit={handleManualLogin} className="w-full space-y-4">
+          <div className="relative">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+              <Key size={18} />
+            </div>
+            <input 
+              type="password"
+              value={inputKey}
+              onChange={(e) => setInputKey(e.target.value)}
+              placeholder="Вставьте API ключ (AIza...)"
+              className="w-full bg-black/50 border border-slate-700 text-white pl-12 pr-4 py-4 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
+            />
+          </div>
 
-        <div className="w-full bg-black/50 rounded-lg p-4 text-left space-y-3 mb-6 border border-slate-800">
-           <div className="flex items-start gap-3">
-              <Lock className="w-4 h-4 text-yellow-500 mt-1 shrink-0" />
-              <div>
-                <p className="text-xs text-slate-500 uppercase font-bold mb-1">Ожидаемая переменная</p>
-                <code className="text-sm text-green-400 font-mono">VITE_API_KEY</code>
-              </div>
-           </div>
-           <div className="h-px bg-slate-800 w-full" />
-           <div>
-             <p className="text-xs text-slate-500 uppercase font-bold mb-1">Текущий статус</p>
-             <p className="text-sm text-red-400 font-mono">
-               {serverKey ? 'Неверный формат (должен начинаться с AIza)' : 'Не найден (undefined)'}
-             </p>
-           </div>
-        </div>
+          <button 
+            type="submit"
+            disabled={!inputKey}
+            className="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            Войти в систему
+          </button>
+        </form>
 
-        <div className="text-xs text-slate-500">
-          Совет: Перейдите в Vercel &rarr; Settings &rarr; Environment Variables, добавьте ключ и нажмите <b>Redeploy</b>.
+        <div className="mt-8 pt-6 border-t border-slate-800 w-full">
+           <div className="flex items-center justify-center gap-2 text-xs text-slate-500 mb-2">
+             <Server size={12} />
+             <span>Статус сервера Vercel:</span>
+           </div>
+           <p className="text-xs text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full inline-block border border-yellow-500/20">
+             Ключ не найден (Используется ручной ввод)
+           </p>
         </div>
+      </div>
+
+      <div className="mt-6 text-slate-600 text-xs text-center max-w-sm">
+        <p>Для продакшена добавьте <code className="text-slate-400">VITE_API_KEY</code> в настройки Vercel.</p>
       </div>
     </div>
   );

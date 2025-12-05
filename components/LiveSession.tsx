@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2, Phone } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Settings, MessageSquare, X, Volume2, Loader2, HelpCircle, AlertCircle, CheckCircle2, Phone, LogOut } from 'lucide-react';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 import Visualizer from './Visualizer';
 import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
@@ -9,9 +10,10 @@ type EndReason = 'user' | 'error' | 'remote';
 
 interface LiveSessionProps {
   apiKey: string;
+  onLogout?: () => void;
 }
 
-const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
+const LiveSession: React.FC<LiveSessionProps> = ({ apiKey, onLogout }) => {
   // Application State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [connectionStep, setConnectionStep] = useState<string>(''); // Detailed status text
@@ -595,6 +597,20 @@ const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
                       <span className="text-xs text-slate-400">Быстро</span>
                    </div>
                 </div>
+
+                {/* LOGOUT BUTTON (Only if manual key is used) */}
+                {onLogout && (
+                  <div>
+                    <label className="text-slate-400 text-xs uppercase tracking-wider font-semibold mb-3 block">Аккаунт</label>
+                    <button 
+                      onClick={onLogout}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors border border-slate-600"
+                    >
+                      <LogOut size={18} />
+                      Сбросить API ключ
+                    </button>
+                  </div>
+                )}
 
               </div>
               
