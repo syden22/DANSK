@@ -16,13 +16,16 @@
       }
     </style>
     <script>
-      // GLOBAL ERROR TRAP
+      // GLOBAL ERROR TRAP - Если скрипт упадет, покажем ошибку
       window.onerror = function(message, source, lineno, colno, error) {
+        // Игнорируем ошибки расширений браузера
+        if (source && source.includes('chrome-extension')) return;
+        
         document.body.innerHTML = `
-          <div style="background: #111; color: #f87171; padding: 20px; font-family: monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-            <h1 style="font-size: 24px; margin-bottom: 20px;">Ошибка запуска скриптов</h1>
-            <p style="background: #222; padding: 15px; border-radius: 8px; max-width: 600px;">${message}</p>
-            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: white; color: black; border: none; border-radius: 5px; cursor: pointer;">Попробовать снова</button>
+          <div style="background: #000; color: #f87171; padding: 20px; font-family: monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+            <h1 style="font-size: 20px; margin-bottom: 20px; color: white;">Критический сбой</h1>
+            <p style="background: #111; padding: 15px; border-radius: 8px; max-width: 600px; border: 1px solid #333;">${message}</p>
+            <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: white; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Перезагрузить</button>
           </div>
         `;
       };
@@ -40,12 +43,6 @@
 </script>
 </head>
   <body>
-    <div id="root">
-       <!-- Static fallback text so user knows HTML loaded but JS is pending -->
-       <div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-family: sans-serif; background: black;">
-         <h2 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 10px;">Загрузка приложения...</h2>
-         <p>Если это сообщение висит долго - проверьте консоль на ошибки.</p>
-       </div>
-    </div>
+    <div id="root"></div>
   </body>
 </html>
