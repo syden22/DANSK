@@ -9,8 +9,9 @@
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0f172a;
+        background-color: #0f172a; /* Slate-900 matches app theme */
         color: #e2e8f0;
+        margin: 0;
       }
       /* Custom scrollbar */
       ::-webkit-scrollbar {
@@ -40,6 +41,11 @@
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+       <!-- Fallback content if React fails to load -->
+       <div style="height: 100vh; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 1.2rem;">
+         Загрузка приложения...
+       </div>
+    </div>
   </body>
 </html>

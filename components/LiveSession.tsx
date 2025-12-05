@@ -7,7 +7,11 @@ import { ChatMessage, ConnectionState, AudioConfig, VOICES } from '../types';
 
 type EndReason = 'user' | 'error' | 'remote';
 
-const LiveSession: React.FC = () => {
+interface LiveSessionProps {
+  apiKey: string;
+}
+
+const LiveSession: React.FC<LiveSessionProps> = ({ apiKey }) => {
   // Application State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [connectionStep, setConnectionStep] = useState<string>(''); // Detailed status text
@@ -151,7 +155,7 @@ const LiveSession: React.FC = () => {
       // 3. API Connection
       setConnectionStep('Соединение с ИИ сервером...');
       
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
 
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -288,7 +292,7 @@ const LiveSession: React.FC = () => {
           onerror: (e) => {
             console.error("Session Error", e);
             if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
-            // More specific error messaging based on typical API failure patterns
+            // More specific error messaging
             const errorMsg = "Ошибка доступа. Проверьте ваш API ключ и лимиты.";
             handleHangUp('error', errorMsg);
           }
@@ -591,11 +595,14 @@ const LiveSession: React.FC = () => {
                       <span className="text-xs text-slate-400">Быстро</span>
                    </div>
                 </div>
+
               </div>
               
-              <button onClick={() => setShowSettings(false)} className="w-full mt-8 py-3 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl transition-colors">
-                Сохранить
-              </button>
+              <div className="space-y-3 mt-6">
+                <button onClick={() => setShowSettings(false)} className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl transition-colors">
+                  Сохранить
+                </button>
+              </div>
            </div>
         </div>
       )}
